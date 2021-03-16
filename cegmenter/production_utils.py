@@ -38,14 +38,13 @@ def getLargestCC(segmentation):
     return largestCC
 
 def get_output_images(out):
-
-	mask_CNN = getLargestCC(out[('Mask',0)].cpu().detach().numpy()[0][0] > 0.5)
+    mask_CNN = getLargestCC(out[('Mask',0)].cpu().detach().numpy()[0][0] > 0.5)
     xcoord_CNN = out[('X_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
     ycoord_CNN = out[('Y_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
     return xcoord_CNN, ycoord_CNN, mask_CNN
 
 def preprocess_image(timepoint):
-	img_path = timepoint.image_path('bf')
+    img_path = timepoint.image_path('bf')
     lab_frame_image = freeimage.read(img_path)
     lab_frame_image = lab_frame_image.astype(numpy.float32)
     height, width = lab_frame_image.shape[:2]
@@ -55,24 +54,24 @@ def preprocess_image(timepoint):
     return (lab_frame_image - mode)/mode
 
 def predict_timepoint(timepoint, model_path, derived_data_path=None):
-	lab_frame_image = preprocess_image(timepoint)
-	lab_frame_image = numpy.expand_dims(lab_frame_image, axis=0)
-	extend_image = numpy.concatenate((lab_frame_image, lab_frame_image, lab_frame_image), axis=0)
-	outputs = predict_image(image, model_path)
-	ap_coords, dv_coords, mask = outputs
-	if derived_data_path is not None:
-		#save the outputs here
-		continue
+    lab_frame_image = preprocess_image(timepoint)
+    lab_frame_image = numpy.expand_dims(lab_frame_image, axis=0)
+    extend_image = numpy.concatenate((lab_frame_image, lab_frame_image, lab_frame_image), axis=0)
+    outputs = predict_image(image, model_path)
+    ap_coords, dv_coords, mask = outputs
+    if derived_data_path is not None:
+        #save the outputs here
+        continue
 
-	costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
-	timepoint.annotations['pose_cegmenter'] = pose
+    costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
+    timepoint.annotations['pose_cegmenter'] = pose
 
 def predict_image(image, model_path):
-	regModel = WormRegModel.WormRegModel(34, pretrained=True)
-	regModel.load_state_dict(torch.load(model_path), map_location='cpu')
-	regModel.eval()
+    regModel = WormRegModel.WormRegModel(34, pretrained=True)
+    regModel.load_state_dict(torch.load(model_path), map_location='cpu')
+    regModel.eval()
 
-	tensor_img = torch.tensor(image).unsqueeze(0)
-	out = regModel(tensor_img)
-	ap_coords, dv_coords, mask = get_output_images(out)
-	return ap_coords, dv_coords, mask
+    tensor_img = torch.tensor(image).unsqueeze(0)
+    out = regModel(tensor_img)
+    ap_coords, dv_coords, mask = get_output_images(out)
+    return ap_coords, dv_coords, mask
