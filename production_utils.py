@@ -18,7 +18,7 @@ from elegant import datamodel
 
 from elegant import convnet_spline
 
-from models import WormRegModel
+from cegmenter.models import WormRegModel
 
 def get_metadata(timepoint):
     metadata = timepoint.position.experiment.metadata
