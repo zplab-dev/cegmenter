@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 # local stuff
-from models.layers import *
+from cegmenter.models.layers import *
 
 
 
@@ -89,11 +89,12 @@ class ResnetEncoder(nn.Module):
             raise ValueError("{} is not a valid number of resnet layers".format(
                 num_layers))
 
-        self.encoder = resnets[num_layers]()
+        #self.encoder = resnets[num_layers]()
+        self.encoder = resnets[num_layers](pretrained=pretrained)
 
         if pretrained:
             print("using pretrained model")
-            self.encoder.load_state_dict(torch.load(os.path.join(self.path_to_model, resnets_pretrained_path[num_layers])))
+            #self.encoder.load_state_dict(torch.load(os.path.join(self.path_to_model, resnets_pretrained_path[num_layers])))
         
         
         if num_layers > 34:

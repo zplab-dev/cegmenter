@@ -18,7 +18,7 @@ from elegant import datamodel
 
 from elegant import convnet_spline
 
-from cegmenter.models import WormRegModel
+from cegmenter.models import WormRegMaskModel
 
 def get_metadata(timepoint):
     metadata = timepoint.position.experiment.metadata
@@ -55,20 +55,21 @@ def preprocess_image(timepoint):
 
 def predict_timepoint(timepoint, model_path, derived_data_path=None):
     lab_frame_image = preprocess_image(timepoint)
-    lab_frame_image = numpy.expand_dims(lab_frame_image, axis=0)
-    extend_image = numpy.concatenate((lab_frame_image, lab_frame_image, lab_frame_image), axis=0)
+    #lab_frame_image = numpy.expand_dims(lab_frame_image, axis=0)
+    #extend_image = numpy.concatenate((lab_frame_image, lab_frame_image, lab_frame_image), axis=0)
+    extend_image = np.stack([lab_frame_image, lab_frame_image, lab_frame_image])
     outputs = predict_image(image, model_path)
     ap_coords, dv_coords, mask = outputs
-    if derived_data_path is not None:
+    #if derived_data_path is not None:
         #save the outputs here
-        continue
+        #TODO: Save this stuff   
 
     costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
     timepoint.annotations['pose_cegmenter'] = pose
 
 def predict_image(image, model_path):
-    regModel = WormRegModel.WormRegModel(34, pretrained=True)
-    regModel.load_state_dict(torch.load(model_path), map_location='cpu')
+    regModel = WormRegMaskModel.WormRegModel(34, pretrained=True)
+    regModel.load_state_dict(torch.load(model_path, map_location='cpu'))
     regModel.eval()
 
     tensor_img = torch.tensor(image).unsqueeze(0)
