@@ -5,6 +5,7 @@ import pickle
 import torch
 
 from scipy.ndimage import gaussian_filter
+from skimage.measure import label
 
 from torch.utils import data
 from zplib.image import colorize
@@ -34,7 +35,7 @@ def get_metadata(timepoint):
 def getLargestCC(segmentation):
     labels = label(segmentation)
     assert( labels.max() != 0 ) # assume at least 1 CC
-    largestCC = labels == np.argmax(np.bincount(labels.flat)[1:])+1
+    largestCC = labels == numpy.argmax(numpy.bincount(labels.flat)[1:])+1
     return largestCC
 
 def get_output_images(out):
@@ -50,22 +51,46 @@ def preprocess_image(timepoint):
     height, width = lab_frame_image.shape[:2]
     objective, optocoupler, magnification, temp = get_metadata(timepoint)
 
-    mode = process_images.get_image_mode(lab_frame_image, optocoupler=optocoupler)
+    #mode = process_images.get_image_mode(lab_frame_image, optocoupler=optocoupler)
+    mode = process_images.get_image_mode(lab_frame_image)
     return (lab_frame_image - mode)/mode
 
-def predict_timepoint(timepoint, model_path, derived_data_path=None):
+def pad_image(image):
+    image_shape = image.shape
+    if image_shape[0]%32 != 0 or image_shape[1]%32 !=0:
+        offsetx = image_shape[0]%32
+        offsety = image_shape[1]%32
+        pxo = int(offsetx/2)
+        pyo = int(offsety/2)
+
+        padded_image = numpy.pad(image, ((pxo, pxo),(pyo,pyo)), 'edge')
+    else:
+        padded_image = image
+        pxo = 0
+        pyo = 0
+    
+    return padded_image, pxo, pyo
+
+def crop_image(padded_image, pxo, pyo):
+    height, width = padded_image.shape
+    return padded_image[pxo:height-pxo, pyo:width-pyo]
+
+def predict_timepoint(timepoint, model_path):
     lab_frame_image = preprocess_image(timepoint)
-    #lab_frame_image = numpy.expand_dims(lab_frame_image, axis=0)
-    #extend_image = numpy.concatenate((lab_frame_image, lab_frame_image, lab_frame_image), axis=0)
-    extend_image = np.stack([lab_frame_image, lab_frame_image, lab_frame_image])
-    outputs = predict_image(image, model_path)
-    ap_coords, dv_coords, mask = outputs
-    #if derived_data_path is not None:
-        #save the outputs here
-        #TODO: Save this stuff   
+    #ensure image is the correct dimensions for the CNN
+    padded_image, pxo, pyo = pad_image(lab_frame_image)
+
+    extend_image = numpy.stack([padded_image, padded_image, padded_image])
+    outputs = predict_image(extend_image, model_path)
+    ap_coords, dv_coords, mask = outputs 
+    #crop the outputs to be the original lab_frame_image shape
+    ap_coords = crop_image(ap_coords, pxo, pyo)
+    dv_coords = crop_image(dv_coords, pxo, pyo)
+    mask = crop_image(mask, pxo, pyo)  
 
     costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
     timepoint.annotations['pose_cegmenter'] = pose
+    return pose, ap_coords, dv_coords, mask
 
 def predict_image(image, model_path):
     regModel = WormRegMaskModel.WormRegModel(34, pretrained=True)
