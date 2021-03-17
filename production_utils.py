@@ -51,9 +51,11 @@ def preprocess_image(timepoint):
     height, width = lab_frame_image.shape[:2]
     objective, optocoupler, magnification, temp = get_metadata(timepoint)
 
-    #mode = process_images.get_image_mode(lab_frame_image, optocoupler=optocoupler)
-    mode = process_images.get_image_mode(lab_frame_image)
-    return (lab_frame_image - mode)/mode
+    mode = process_images.get_image_mode(lab_frame_image, optocoupler=optocoupler)
+    bf = colorize.scale(lab_frame_image, min=None, max=2*mode, output_max=2)
+    bf -= 1
+    return bf
+    #return (lab_frame_image - mode)/mode
 
 def pad_image(image):
     image_shape = image.shape
