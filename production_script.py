@@ -10,7 +10,7 @@ from cegmenter import production_utils
 
 def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='pose_cegmenter', overwrite_existing=False, img_type='png'):
     if model_path is None or not os.path.isfile(model_path):
-        model_path = pkg_resources.resource_filepath('cegmenter', 'models/bestValModel.paramOnly')
+        model_path = pkg_resources.resource_filename('cegmenter', 'models/bestValModel.paramOnly')
 
     exp_root = pathlib.Path(exp_root)
     if derived_data_path is None:
