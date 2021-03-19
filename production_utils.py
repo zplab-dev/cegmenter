@@ -10,7 +10,7 @@ from skimage.measure import label
 
 from torch.utils import data
 from zplib.image import colorize
-from zplib.image import pyramid
+import zplib.image.mask as zpl_mask
 from zplib.curve import spline_geometry
 from zplib.curve import interpolate
 
@@ -40,7 +40,7 @@ def getLargestCC(segmentation):
     return largestCC
 
 def get_output_images(out):
-    mask_CNN = getLargestCC(out[('Mask',0)].cpu().detach().numpy()[0][0] > 0.5)
+    mask_CNN = zpl_mask.get_largest_object(out[('Mask',0)].cpu().detach().numpy()[0][0] > 0.5)
     #xcoord_CNN = out[('X_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
     #ycoord_CNN = out[('Y_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
     xcoord_CNN = out[('X_Coord',0)].cpu().detach().numpy()[0][0]
@@ -113,9 +113,9 @@ def predict_position(position, model_path, derived_data_path, pose_name='pose_ce
         #save the images out
         if overwrite_existing:
             derived_data_path = pathlib.Path(derived_data_path)
-            ap_path = derived_data_path / 'AP_coords' / position.name / (tp_name + '.tif')
-            dv_path = derived_data_path / 'DV_coords' / position.name / (tp_name + '.tif')
-            mask_path = derived_data_path / 'Mask' / position.name / (tp_name + '.tif')
+            ap_path = derived_data_path / 'AP_coords' / position.name / (tp_name + img_type)
+            dv_path = derived_data_path / 'DV_coords' / position.name / (tp_name + img_type)
+            mask_path = derived_data_path / 'Mask' / position.name / (tp_name + img_type)
 
             ap_path.parent.mkdir(exist_ok=True, parents=True)
             dv_path.parent.mkdir(exist_ok=True, parents=True)
@@ -124,14 +124,14 @@ def predict_position(position, model_path, derived_data_path, pose_name='pose_ce
             if img_type is 'tif': #if tif, save out float 32 tiff
                 freeimage.write(ap_coords, ap_path)
                 freeimage.write(dv_coords, dv_path)
-                freeimage.write(mask, mask_path)
+                freeimage.write(mask.astype(numpy.float32), mask_path)
             else: #rescale to be uint8
                 apc = colorize.scale(ap_coords).astype(numpy.uint8)
                 freeimage.write(apc, ap_path)
                 dvc = colorize.scale(dv_coords).astype(numpy.uint8)
                 freeimage.write(dvc, dv_path)
-                apc = colorize.scale(ap_coords).astype(numpy.uint8)
-                freeimage.write(apc, ap_path)
+                mpc = colorize.scale(mask).astype(numpy.uint8)
+                freeimage.write(mpc, mask_path)
 
 
 
