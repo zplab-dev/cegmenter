@@ -121,7 +121,7 @@ def predict_position(position, model_path, derived_data_path, pose_name='pose_ce
             dv_path.parent.mkdir(exist_ok=True, parents=True)
             mask_path.parent.mkdir(exist_ok=True, parents=True)
             
-            if img_type is 'tif': #if tif, save out float 32 tiff
+            if img_type == 'tif': #if tif, save out float 32 tiff
                 freeimage.write(ap_coords, ap_path)
                 freeimage.write(dv_coords, dv_path)
                 freeimage.write(mask.astype(numpy.float32), mask_path)
