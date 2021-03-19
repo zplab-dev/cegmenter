@@ -18,7 +18,7 @@ def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='
 
     experiment = datamodel.Experiment(exp_root)
 
-    for positions in experiment.positions:
+    for position in experiment.positions:
         production_utils.predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=False,  img_type='png')
 
     if overwrite_existing:
