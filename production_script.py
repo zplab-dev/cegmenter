@@ -8,20 +8,35 @@ from elegant import datamodel
 
 from cegmenter import production_utils
 
-def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='pose_cegmenter', overwrite_existing=False):
-	if model_path is None:
-		with pkg_resources.resource_stream('cegmenter', 'models/bestValModel.paramOnly') as m:
-			model_path = m
+def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='pose_cegmenter', overwrite_existing=False, img_type='png'):
+    if model_path is None or not os.path.isfile(model_path):
+        model_path = pkg_resources.resource_filepath('cegmenter', 'models/bestValModel.paramOnly')
 
-	if not os.path.isfile(model_path):
-		with pkg_resources.resource_stream('cegmenter', 'models/bestValModel.paramOnly') as m:
-			model_path = m
+    exp_root = pathlib.Path(exp_root)
+    if derived_data_path is None:
+        derived_data_path = exp_root / 'derived_data' 
 
-	exp_root = pathlib.Path(exp_root)
-	if derived_data_path is None:
-		derived_data_path = exp_root / 'derived_data' 
+    experiment = datamodel.Experiment(exp_root)
 
-	experiment = datamodel.Experiment(exp_root)
+    for positions in experiment.positions:
+        production_utils.predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=False,  img_type='png')
+
+    if overwrite_existing:
+        experiment.write_to_disk()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('exp_root', action='store', type=str)
+    parser.add_argument('--model_path', default=None)
+    parser.add_argument('--derived_data_path', default=None)
+    parser.add_argument('--pose_name', default='pose_cegmenter')
+    parser.add_argument('--overwrite_existing', default=False, action='store_true')
+    parser.add_argument('--img_type', default='png')
+
+    args = parser.parse_args()
+    run_predictor(**vars(args))
+    
+    
 
 
 
