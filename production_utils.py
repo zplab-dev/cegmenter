@@ -2,6 +2,7 @@ import pkg_resources
 import freeimage
 import numpy
 import pickle
+import pathlib
 import torch
 
 from scipy.ndimage import gaussian_filter
@@ -40,8 +41,10 @@ def getLargestCC(segmentation):
 
 def get_output_images(out):
     mask_CNN = getLargestCC(out[('Mask',0)].cpu().detach().numpy()[0][0] > 0.5)
-    xcoord_CNN = out[('X_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
-    ycoord_CNN = out[('Y_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
+    #xcoord_CNN = out[('X_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
+    #ycoord_CNN = out[('Y_Coord',0)].cpu().detach().numpy()[0][0]*mask_CNN
+    xcoord_CNN = out[('X_Coord',0)].cpu().detach().numpy()[0][0]
+    ycoord_CNN = out[('Y_Coord',0)].cpu().detach().numpy()[0][0]
     return xcoord_CNN, ycoord_CNN, mask_CNN
 
 def preprocess_image(timepoint):
@@ -77,7 +80,7 @@ def crop_image(padded_image, pxo, pyo):
     height, width = padded_image.shape
     return padded_image[pxo:height-pxo, pyo:width-pyo]
 
-def predict_timepoint(timepoint, model_path):
+def predict_timepoint(timepoint, model_path, pose_name='pose_cegmenter'):
     lab_frame_image = preprocess_image(timepoint)
     #ensure image is the correct dimensions for the CNN
     padded_image, pxo, pyo = pad_image(lab_frame_image)
@@ -91,7 +94,7 @@ def predict_timepoint(timepoint, model_path):
     mask = crop_image(mask, pxo, pyo)  
 
     costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
-    timepoint.annotations['pose_cegmenter'] = pose
+    timepoint.annotations[pose_name] = pose
     return pose, ap_coords, dv_coords, mask
 
 def predict_image(image, model_path):
@@ -103,3 +106,32 @@ def predict_image(image, model_path):
     out = regModel(tensor_img)
     ap_coords, dv_coords, mask = get_output_images(out)
     return ap_coords, dv_coords, mask
+
+def predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=False,  img_type='png'):
+    for tp_name, timepoint in position.timepoints.items():
+        pose, ap_coords, dv_coords, mask = predict_timepoint(timepoint, model_path, pose_name)
+        #save the images out
+        if overwrite_existing:
+            derived_data_path = pathlib.Path(derived_data_path)
+            ap_path = derived_data_path / 'AP_coords' / position.name / (tp_name + '.tif')
+            dv_path = derived_data_path / 'DV_coords' / position.name / (tp_name + '.tif')
+            mask_path = derived_data_path / 'Mask' / position.name / (tp_name + '.tif')
+
+            ap_path.parent.mkdir(exist_ok=True, parents=True)
+            dv_path.parent.mkdir(exist_ok=True, parents=True)
+            mask_path.parent.mkdir(exist_ok=True, parents=True)
+            
+            if img_type is 'tif': #if tif, save out float 32 tiff
+                freeimage.write(ap_coords, ap_path)
+                freeimage.write(dv_coords, dv_path)
+                freeimage.write(mask, mask_path)
+            else: #rescale to be uint8
+                apc = colorize.scale(ap_coords).astype(numpy.uint8)
+                freeimage.write(apc, ap_path)
+                dvc = colorize.scale(dv_coords).astype(numpy.uint8)
+                freeimage.write(dvc, dv_path)
+                apc = colorize.scale(ap_coords).astype(numpy.uint8)
+                freeimage.write(apc, ap_path)
+
+
+
