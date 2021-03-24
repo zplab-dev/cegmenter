@@ -109,6 +109,7 @@ def predict_image(image, model_path):
 
 def predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=False,  img_type='png'):
     for tp_name, timepoint in position.timepoints.items():
+        print(timepoint.position.name, tp_name)
         pose, ap_coords, dv_coords, mask = predict_timepoint(timepoint, model_path, pose_name)
         #save the images out
         if overwrite_existing:
