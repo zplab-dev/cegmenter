@@ -1,9 +1,11 @@
+import sys
 import pkg_resources
 import freeimage
 import numpy
 import pickle
 import pathlib
 import torch
+import traceback
 
 from scipy.ndimage import gaussian_filter
 from skimage.measure import label
@@ -93,9 +95,39 @@ def predict_timepoint(timepoint, model_path, pose_name='pose_cegmenter'):
     dv_coords = crop_image(dv_coords, pxo, pyo)
     mask = crop_image(mask, pxo, pyo)  
 
-    costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
-    timepoint.annotations[pose_name] = pose
-    return pose, ap_coords, dv_coords, mask
+    try:
+        costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
+        timepoint.annotations[pose_name] = pose
+        return pose, ap_coords, dv_coords, mask
+    except Exception as e:
+        print("Error finding the centerline for timepoint {} {}".format(timepoint.position.name, timepoint.name))
+        exception_handler(e, expt_root, ap_coords, dv_coords, mask)
+    
+def exception_handler(e, timepoint, ap_coords, dv_coords, mask):
+    expt_root = timepoint.position.experiment.path
+    error_path = expt_root / error_log
+    error_path.mkdir(exist_ok=True, parents=True)
+    elog = error_path/'log.txt'
+    with open(elog, 'a') as f:
+        f.write("Error finding the centerline for timepoint {} {} \n".format(timepoint.position.name, timepoint.name))
+        exec_info = sys.exc_info() 
+        traceback.print_exception(*exec_info, file=f)
+        f.close()
+    
+    ap_path = error_path / timepoint.position.name / (tp_name +'_ap_doords.png')
+    dv_path = error_path /  timepoint.position.name / (tp_name +'_dv_doords.png')
+    mask_path = error_path / timepoint.position.name / (tp_name +'_mask.png')
+    
+    ap_path.parent.mkdir(exist_ok=True, parents=True)
+    dv_path.parent.mkdir(exist_ok=True, parents=True)
+    mask_path.parent.mkdir(exist_ok=True, parents=True)
+
+    apc = colorize.scale(ap_coords).astype(numpy.uint8)
+    freeimage.write(apc, ap_path)
+    dvc = colorize.scale(dv_coords).astype(numpy.uint8)
+    freeimage.write(dvc, dv_path)
+    mpc = colorize.scale(mask).astype(numpy.uint8)
+    freeimage.write(mpc, mask_path)
 
 def predict_image(image, model_path):
     regModel = WormRegMaskModel.WormRegModel(34, pretrained=True)
