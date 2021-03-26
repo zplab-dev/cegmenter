@@ -101,11 +101,12 @@ def predict_timepoint(timepoint, model_path, pose_name='pose_cegmenter'):
         return pose, ap_coords, dv_coords, mask
     except Exception as e:
         print("Error finding the centerline for timepoint {} {}".format(timepoint.position.name, timepoint.name))
-        exception_handler(e, expt_root, ap_coords, dv_coords, mask)
+        exception_handler(e, timepoint, ap_coords, dv_coords, mask)
+        return ap_coords, dv_coords, mask
     
 def exception_handler(e, timepoint, ap_coords, dv_coords, mask):
     expt_root = timepoint.position.experiment.path
-    error_path = expt_root / error_log
+    error_path = expt_root / 'error_log'
     error_path.mkdir(exist_ok=True, parents=True)
     elog = error_path/'log.txt'
     with open(elog, 'a') as f:
@@ -113,7 +114,7 @@ def exception_handler(e, timepoint, ap_coords, dv_coords, mask):
         exec_info = sys.exc_info() 
         traceback.print_exception(*exec_info, file=f)
         f.close()
-    
+    tp_name = timepoint.name
     ap_path = error_path / timepoint.position.name / (tp_name +'_ap_doords.png')
     dv_path = error_path /  timepoint.position.name / (tp_name +'_dv_doords.png')
     mask_path = error_path / timepoint.position.name / (tp_name +'_mask.png')
