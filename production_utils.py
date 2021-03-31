@@ -102,7 +102,7 @@ def predict_timepoint(timepoint, model_path, pose_name='pose_cegmenter'):
     except Exception as e:
         print("Error finding the centerline for timepoint {} {}".format(timepoint.position.name, timepoint.name))
         exception_handler(e, timepoint, ap_coords, dv_coords, mask)
-        return ap_coords, dv_coords, mask
+        return None, ap_coords, dv_coords, mask
     
 def exception_handler(e, timepoint, ap_coords, dv_coords, mask):
     expt_root = timepoint.position.experiment.path
@@ -144,6 +144,8 @@ def predict_position(position, model_path, derived_data_path, pose_name='pose_ce
     for tp_name, timepoint in position.timepoints.items():
         print(timepoint.position.name, tp_name)
         pose, ap_coords, dv_coords, mask = predict_timepoint(timepoint, model_path, pose_name)
+        if pose is None:
+            continue
         #save the images out
         if overwrite_existing:
             derived_data_path = pathlib.Path(derived_data_path)
