@@ -14,12 +14,20 @@ def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='
 
     exp_root = pathlib.Path(exp_root)
     if derived_data_path is None:
-        derived_data_path = exp_root / 'derived_data' 
+        derived_data_path = exp_root / 'derived_data'
 
     experiment = datamodel.Experiment(exp_root)
-
+    experiment.filter(datamodel.filter_excluded)
+    experiment.filter(datamodel.filter_staged)
+    experiment.filter(datamodel.filter_living_timepoints)
+    experiment.filter(datamodel.make_living_filter(0,0))
+    mytimepoints=[]
+    for i in experiment.all_timepoints:
+        mytimepoints.append(i)
+    print(len(mytimepoints))
+    
     for position in experiment.positions.values():
-        production_utils.predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=overwrite_existing,  img_type='png')
+        production_utils.predict_position(position, model_path, derived_data_path, pose_name, overwrite_existing=overwrite_existing,  img_type='png')
 
     if overwrite_existing:
         experiment.write_to_disk()
