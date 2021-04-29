@@ -99,7 +99,7 @@ def predict_timepoint(timepoint, model_path, pose_name='pose_cegmenter'):
         costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
         timepoint.annotations[pose_name] = pose
         timepoint.position.write_annotations()
-        print("Wrote a pose!")
+        print("Wrote pose for {} {}".format(timepoint.position.name, timepoint.name))
         return pose, ap_coords, dv_coords, mask
     except Exception as e:
         print("Error finding the centerline for timepoint {} {}".format(timepoint.position.name, timepoint.name))
@@ -144,7 +144,7 @@ def predict_image(image, model_path):
 
 def predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=False,  img_type='png'):
     for tp_name, timepoint in position.timepoints.items():
-        print(timepoint.position.name, tp_name)
+        #print(timepoint.position.name, tp_name)
         pose, ap_coords, dv_coords, mask = predict_timepoint(timepoint, model_path, pose_name)
         if pose is None:
             continue
