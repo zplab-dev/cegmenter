@@ -21,11 +21,11 @@ def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='
 
     exp_root = pathlib.Path(exp_root)
     if derived_data_path is None:
-        derived_data_path = exp_root / 'derived_data' 
+        derived_data_path = exp_root / 'derived_data'
 
     experiment = datamodel.Experiment(exp_root)
-
     predict_experiment(experiment, model_path, derived_data_path, pose_name, overwrite_existing, img_type)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

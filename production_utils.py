@@ -89,15 +89,17 @@ def predict_timepoint(timepoint, model_path, pose_name='pose_cegmenter'):
 
     extend_image = numpy.stack([padded_image, padded_image, padded_image])
     outputs = predict_image(extend_image, model_path)
-    ap_coords, dv_coords, mask = outputs 
+    ap_coords, dv_coords, mask = outputs
     #crop the outputs to be the original lab_frame_image shape
     ap_coords = crop_image(ap_coords, pxo, pyo)
     dv_coords = crop_image(dv_coords, pxo, pyo)
-    mask = crop_image(mask, pxo, pyo)  
+    mask = crop_image(mask, pxo, pyo)
 
     try:
         costs, centerline, center_path, pose = convnet_spline.find_centerline(ap_coords, dv_coords, mask)
         timepoint.annotations[pose_name] = pose
+        timepoint.position.write_annotations()
+        print("Wrote pose for {} {}".format(timepoint.position.name, timepoint.name))
         return pose, ap_coords, dv_coords, mask
     except Exception as e:
         print("Error finding the centerline for timepoint {} {}".format(timepoint.position.name, timepoint.name))
@@ -111,7 +113,7 @@ def exception_handler(e, timepoint, ap_coords, dv_coords, mask):
     elog = error_path/'log.txt'
     with open(elog, 'a') as f:
         f.write("Error finding the centerline for timepoint {} {} \n".format(timepoint.position.name, timepoint.name))
-        exec_info = sys.exc_info() 
+        exec_info = sys.exc_info()
         traceback.print_exception(*exec_info, file=f)
         f.close()
     tp_name = timepoint.name
@@ -142,7 +144,7 @@ def predict_image(image, model_path):
 
 def predict_position(position, model_path, derived_data_path, pose_name='pose_cegmenter', overwrite_existing=False,  img_type='png'):
     for tp_name, timepoint in position.timepoints.items():
-        print(timepoint.position.name, tp_name)
+        #print(timepoint.position.name, tp_name)
         pose, ap_coords, dv_coords, mask = predict_timepoint(timepoint, model_path, pose_name)
         if pose is None:
             continue
