@@ -8,6 +8,13 @@ from elegant import datamodel
 
 from cegmenter import production_utils
 
+def predict_experiment(experiment, model_path=None, derived_data_path=None, pose_name='pose_cegmenter', overwrite_existing=False, img_type='png'):
+    for position in experiment.positions.values():
+        production_utils.predict_position(position, model_path, derived_data_path, pose_name, overwrite_existing, img_type)
+
+    if overwrite_existing:
+        experiment.write_to_disk()
+
 def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='pose_cegmenter', overwrite_existing=False, img_type='png'):
     if model_path is None or not os.path.isfile(model_path):
         model_path = pkg_resources.resource_filename('cegmenter', 'models/bestValModel.paramOnly')
@@ -18,11 +25,7 @@ def run_predictor(exp_root, model_path=None, derived_data_path=None, pose_name='
 
     experiment = datamodel.Experiment(exp_root)
 
-    for position in experiment.positions.values():
-        production_utils.predict_position(position, model_path, derived_data_path, pose_name, overwrite_existing,  img_type)
-
-    if overwrite_existing:
-        experiment.write_to_disk()
+    predict_experiment(experiment, model_path, derived_data_path, pose_name, overwrite_existing, img_type)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
